@@ -5,14 +5,19 @@ import struct
 import threading
 
 def clientThread(conn, addr):
-	print("New client connected: "+addr)
-	conn.send("Welcome to the chatroom, mate!")
+	print("New client connected: " + addr[0])
+	conn.send("Welcome to the chatroom, mate!\n")
 	
 	while True:
 		try:
+			print("Waiting for messages...")
 			msg = conn.recv(1024)
-			if msg:
+			if msg is not None:
 				msg_to_send = addr + "->" + msg
+				print("Forwarding message"+msg_to_send)
+				print("To:")
+				for client in clients:
+					print(client.getpeername())
 				broadcast(conn, msg_to_send)
 			else:
 				remove(conn)
@@ -64,7 +69,8 @@ server.listen(5)
 while True:
 	# Register a new client
 	conn, addr = server.accept()
+	print("Got a connection...")
 	clients.append(conn)
-	t = threading.Thread(target=client_handler, args=(conn, addr))
+	t = threading.Thread(target=clientThread, args=(conn, addr))
 	t.start()
 	
