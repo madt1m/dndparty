@@ -65,5 +65,6 @@ while True:
 	# Register a new client
 	conn, addr = server.accept()
 	clients.append(conn)
-	threading.start_new_thread(client_handler, (conn, addr))
+	t = threading.Thread(target=client_handler, args=(conn, addr))
+	t.start()
 	
