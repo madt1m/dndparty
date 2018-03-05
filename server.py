@@ -3,22 +3,42 @@ import sys
 import fcntl
 import struct
 import threading
+import re
+import os
 
+lock = threading.RLock()
+sDirectory = "dndServer"
+if not os.path.exists(sDirectory):
+	os.makedirs(sDirectory)
 def clientThread(conn, addr):
 	print("New client connected: " + addr[0])
-	conn.send("Welcome to the chatroom, mate!\n")
-	
+	welcome = "Welcome to the chatroom, mate!\n"
+	conn.send(welcome.encode())
 	while True:
 		try:
-			print("Waiting for messages...")
-			msg = conn.recv(1024)
+			#print("Waiting for messages...")
+			msg = conn.recv(4096)
+			#print("Received from "+ addr[0])
+			#print("\n"+msg.decode())
+			#mex = "You sent me this: " + msg.decode()
+			#conn.send(mex.encode())
 			if msg is not None:
-				msg_to_send = addr + "->" + msg
-				print("Forwarding message"+msg_to_send)
-				print("To:")
+				msg_to_send = "<"+ addr[0] + "> " + msg.decode()
+				print(msg_to_send, end="")
+				"""print("To:")
 				for client in clients:
-					print(client.getpeername())
+					print(client.getpeername())"""
+				with lock:
+					try:
+						f = open(sDirectory+"/chatlog.txt", "a+")
+						try:
+							f.write(msg_to_send)
+						finally:
+							f.close()
+					except:
+						pass        
 				broadcast(conn, msg_to_send)
+
 			else:
 				remove(conn)
 				break
@@ -30,7 +50,7 @@ def broadcast(connection, message):
 	for client in clients:
 		if client != connection:
 			try:
-				client.send(message)
+				client.send(message.encode())
 			except:
 				client.close()
 				remove(client)
@@ -64,8 +84,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind((ip, int(PORT)))
 print("[+] Server running on address "+ip+" and port "+PORT)
-server.listen(5)
-
+server.listen(100)
 while True:
 	# Register a new client
 	conn, addr = server.accept()
@@ -73,4 +92,4 @@ while True:
 	clients.append(conn)
 	t = threading.Thread(target=clientThread, args=(conn, addr))
 	t.start()
-	
+sys.exit()	
